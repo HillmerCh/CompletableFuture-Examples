@@ -1,0 +1,38 @@
+= CompletableFuture Práctico
+
+Este repositorio contiene una serie de *ejemplos* prácticos de como realizar *tareas Asíncronas
+y en paralelo* utilizando *CompletableFuture*. Cada ejemplo es susceptible a mejoras.
+
+La construcción inicio el día _28_ de _julio_ del _2020_, y se actualizará durante un
+par de meses hasta completar varios casos de usos que permitan demostrar diferentes uso de esta clase.
+
+== Algunas definiciones (_En el contexto de este repositorio_)
+
+* *Tareas Asíncronas:* Aquellas que una vez iniciada su ejecución
+no tenemos que esperar a que esta termine, y mientras se ejecuta
+se pueden ir realizando otras tareas.
+* *Tareas en paralelo:* Aquellas que se ejecutan al mismo tiempo,
+generalmente con el objetivo de obtener una respuesta más rápida.
+* *CompletableFuture:* Es una clase en Java, incluida desde la versión 8, y
+que en la versión 14 contiene más de 50 métodos.Permite entre otros
+la ejecución de tareas asíncronas y/o en paralelo.
+
+== Estructura del código
+
+* Este proyecto está estructurado con *Maven*
+* La versión utilizada de *Java* es la *14*
+* Utiliza *slf4j* para generar los *logs*
+* *Junit 5* es utilizado para la creación de los casos de pruebas.
+* Cada ejemplo tiene uno o más casos de prueba para ejecutar y ver su funcionamiento
+
+== Como utilizar este repositorio
+
+. Clone o descargue este repositorio
+. Ejecute los casos de pruebas desde un IDE o desde una consola de comandos ejecute el comando `mvn test`
+
+== Ejemplos
+
+. *link:docs/ES/PAGOS.adoc[Registro Asíncrono de pagos]:*
+  Este ejemplo muestra como realizar tareas en paralelo y asíncronas.
+
+. *Generación de reporte en paralelo de tareas asignadas:* [_En construcción_]

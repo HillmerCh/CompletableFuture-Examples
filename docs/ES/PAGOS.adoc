@@ -1,0 +1,121 @@
+= CompletableFuture Práctico
+
+== Ejemplos
+
+link:../../README.adoc[Volver al index]
+
+=== 1. Registro Asíncrono de pagos
+
+Este ejemplo muestra como realizar tareas en paralelo y asíncronas
+al procesar pagos de facturas recibidos en un archivo plano.
+Para esto utilizamos los métodos `supplyAsync` y `thenApplyAsync` de la clase `CompletableFuture`
+
+==== Componentes
+
+===== Clases
+
+* link:../../src/main/java/co/hillmerch/payments/Invoice.java[Invoice]: Entidad para representar facturas
+* link:../../src/main/java/co/hillmerch/payments/Payment.java[Payment]: Entidad para representar los pagos
+* link:../../src/main/java/co/hillmerch/payments/PaymentService.java[PaymentService]: Servicio en donde procesan los pagos
+
+===== Clases de pruebas
+* link:../../src/main/java/co/hillmerch/payments/PaymentServiceTest.java[PaymentServiceTest]
+
+===== Archivos
+* link:../../src/test/resources/payments.txt[payments.txt]: Archivo plano que contiene los pagos,
+cada línea contiene un número de factura, el valor y la fecha (_DD/MM/YYYY_) del pago.
+
+[source,txt]
+----
+ 00141 004000 24/07/2020
+ 02012 001500 22/07/2020
+----
+
+
+==== Código
+
+En la clase `PaymentService` se encuentran los métodos `processPayments` y `processPaymentsAsync`.
+Ambos métodos mediante un ciclo while *leen línea por línea* el archivo plano, *consultan la factura* con el método
+`findInvoice`, *guardan el pago* por medio del método `savedPayment` y finalmente *imprimen en el log* el pago generado
+
+En el método `processPayments` se hace el procesamiento *secuencial*, es decir los pagos se procesan uno seguido del otro,
+según se muestra a continuación:
+
+.co.hillmerch.payments.PaymentService::public void processPayments(File paymentsFile)
+[source,java]
+----
+while (sc.hasNextLine()) {
+    String[] paymentLine = sc.nextLine().split( " " );
+    Invoice invoice = findInvoice(paymentLine[0]);
+    Payment payment = savedPayment( invoice, paymentLine[1], paymentLine[2]);
+    logger.info( payment.toString() );
+}
+----
+
+
+En el método `processPaymentsAsync` se hace el procesamiento en *paralelo* y *asíncrono*, es decir se procesan varios pagos a la vez
+y estos se quedan procesando en segundo plano, para esto se utilizan
+métodos de la clase `CompletableFuture` y por medio de *expresiones lambda* se hace el
+llamado de los métodos que consultan y guardan los pagos, según se muestra a continuación:
+
+.co.hillmerch.payments.PaymentService::public void processPaymentsAsync(File paymentsFile)
+[source,java]
+----
+while (sc.hasNextLine()) {
+    String[] paymentLine = sc.nextLine().split( " " );
+    CompletableFuture
+        .supplyAsync( ()-> findInvoice( paymentLine[0] ))
+        .thenApplyAsync( invoice -> savedPayment( invoice , paymentLine[1], paymentLine[2]) )
+        .thenAccept( payment -> logger.info( payment.toString() ));
+}
+----
+
+Los métodos `supplyAsyncy` y `thenApplyAsync` tienen como característica que el *resultado* o *retorno*
+de las expresiones lambdas quedan *disponibles* para que sea usado por el siguiente método.
+En este ejemplo la factura que retorna el método `findInvoice` se utiliza como parámetro en el
+método `savedPayment` y a su vez el pago generado por este se utiliza al generar el log.
+Finalmente el método `thenAccept` utilizando una instrucción lambda genera el log
+
+
+==== Ejecución
+
+Ambos métodos puede ser ejecutados utilizando la clase de prueba `co.hillmerch.payments.PaymentServiceTest`
+
+NOTE: En el procesamiento de cada pago se han adicionado 3 segundos de pausas
+
+===== Análisis de resultados (Ejecución de casos de pruebas)
+
+En la siguiente tabla se presentan la comparación de los tiempos de ejecución de ambos métodos al procesar
+5 pagos
+
+.Comparación de tiempos de ejecución
+|===
+^|Método ^|Tiempo de respuesta ^|Tiempo total de ejecución
+
+|*testingProcessPayments()*
+>| 15.0943 s
+>| 15.0943 s
+
+|*testingProcessPaymentsAsync()*
+>| 0.0102 s
+>| 6.0648 s
+|===
+
+En el método `testingProcessPayments` solo se tiene una respuesta cuando cuando ya se han procesado todos los pagos,
+mientras que en  `testingProcessPaymentsAsync` tanto el *tiempo* de *respuesta* como el *tiempo total*
+requerido para procesar los pagos es *menor*, esto debido a que se ejecuta en *hilos paralelos*.
+
+=== Conclusión
+
+En este ejemplo podemos concluir:
+
+. Utilizar `CompletableFuture` *no requiere* mayor cambio en el código
+
+. Al utilizar procesamiento en *paralelo aprovechamos* la capacidad del hardware (cores, hilos de cada core)
+obteniendo *menores tiempos* de *ejecución*
+
+. El procesamiento *Asíncrono* puede permitir darle una *rápida respuesta* al usuario y
+que este pueda seguir utilizando el sistema mientras el procesamiento finaliza
+
+
+link:../../README.adoc[Volver al index]
