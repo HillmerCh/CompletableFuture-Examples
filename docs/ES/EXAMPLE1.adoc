@@ -6,7 +6,7 @@ link:../../README.adoc[Volver al index]
 
 === 1. Registro Asíncrono de pagos
 
-Este ejemplo muestra como realizar tareas en paralelo y asíncronas
+Este ejemplo muestra como realizar tareas concurrentes (que se ejecutan al mismo tiempo) y asíncronas
 al procesar pagos de facturas recibidos en un archivo plano.
 Para esto utilizamos los métodos `supplyAsync` y `thenApplyAsync` de la clase `CompletableFuture`
 
@@ -19,7 +19,7 @@ Para esto utilizamos los métodos `supplyAsync` y `thenApplyAsync` de la clase `
 * link:../../src/main/java/co/hillmerch/payments/PaymentService.java[PaymentService]: Servicio en donde procesan los pagos
 
 ===== Clases de pruebas
-* link:../../src/main/java/co/hillmerch/payments/PaymentServiceTest.java[PaymentServiceTest]
+* link:../../src/main/test/co/hillmerch/payments/PaymentServiceTest.java[PaymentServiceTest]
 
 ===== Archivos
 * link:../../src/test/resources/payments.txt[payments.txt]: Archivo plano que contiene los pagos,
@@ -53,7 +53,7 @@ while (sc.hasNextLine()) {
 ----
 
 
-En el método `processPaymentsAsync` se hace el procesamiento en *paralelo* y *asíncrono*, es decir se procesan varios pagos a la vez
+En el método `processPaymentsAsync` se hace el procesamiento en *concurrente* y *asíncrono*, es decir se procesan varios pagos a la vez
 y estos se quedan procesando en segundo plano, para esto se utilizan
 métodos de la clase `CompletableFuture` y por medio de *expresiones lambda* se hace el
 llamado de los métodos que consultan y guardan los pagos, según se muestra a continuación:
@@ -103,7 +103,7 @@ En la siguiente tabla se presentan la comparación de los tiempos de ejecución 
 
 En el método `testingProcessPayments` solo se tiene una respuesta cuando cuando ya se han procesado todos los pagos,
 mientras que en  `testingProcessPaymentsAsync` tanto el *tiempo* de *respuesta* como el *tiempo total*
-requerido para procesar los pagos es *menor*, esto debido a que se ejecuta en *hilos paralelos*.
+requerido para procesar los pagos es *menor*, esto debido a que se ejecuta en *hilos concurrentes*.
 
 === Conclusión
 
@@ -111,7 +111,7 @@ En este ejemplo podemos concluir:
 
 . Utilizar `CompletableFuture` *no requiere* mayor cambio en el código
 
-. Al utilizar procesamiento en *paralelo aprovechamos* la capacidad del hardware (cores, hilos de cada core)
+. Al utilizar procesamiento en *concurrente aprovechamos* la capacidad del hardware (cores, hilos de cada core)
 obteniendo *menores tiempos* de *ejecución*
 
 . El procesamiento *Asíncrono* puede permitir darle una *rápida respuesta* al usuario y

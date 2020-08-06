@@ -1,0 +1,118 @@
+= CompletableFuture Práctico
+
+== Ejemplos
+
+link:../../README.adoc[Volver al index]
+
+=== 2. Consulta de información al mismo tiempo para consolidar el resultado
+
+Este ejemplo realiza la consulta de las tareas asignadas a un grupo de desarrolladores,
+consultando la información de varios de ellos a la vez, una vez toda la información
+se encuentra cargada se consolida para retornar el resultado.
+
+Para esto utilizamos los métodos `supplyAsync`, `allOf` y `join` de la clase `CompletableFuture`
+
+==== Componentes
+
+===== Clases
+
+* link:../../src/main/java/co/hillmerch/developers/Developer.java[Developer]: Entidad para representar desarrolladores
+* link:../../src/main/java/co/hillmerch/developers/DeveloperService.java[DeveloperService]: Servicio en donde se consultan las tareas asignadas a cada desarrollador
+
+===== Clases de pruebas
+* link:../../src/test/java/co/hillmerch/developers/DeveloperServiceTest.java[DeveloperServiceTest]
+
+
+==== Código
+
+En la clase `DeveloperService` se encuentran los métodos `generateDeveloperCurrentStatus` y `generateDeveloperCurrentStatusAsync`.
+El proceso consiste en la consulta de los desarrolladores con el método `findDevelopers()` y para cada uno de ellos
+se cargan sus tareas con el método `loadNumberOfTasks`. Uno de los métodos lo hace de manera secuencial y el otro
+concurrente y asíncrona.
+
+En el método `generateDeveloperCurrentStatus` se hace el procesamiento *secuencial*, es decir la información de cada desarrollador
+se consulta uno seguido del otro,  según se muestra a continuación:
+
+.co.hillmerch.payments.DeveloperService::public List<Developer> generateDeveloperCurrentStatus()
+[source,java]
+----
+public List<Developer> generateDeveloperCurrentStatus(){
+    List<Developer> developerList = this.findDevelopers();
+    for(Developer developer:developerList){
+        developer = this.loadNumberOfTasks( developer );
+    }
+    return developerList;
+}
+----
+
+
+En el método `generateDeveloperCurrentStatusAsync` se hace el procesamiento *concurrente* y *asíncrono*, es decir se consultan las tareas
+de varios desarrolladores a la vez, para esto se utilizan la clase `CompletableFuture` y por medio de *expresiones lambda* se hace el
+llamado de los métodos, para poder consolidar el resultado, cada tarea concurrente se adiciona a una lista
+según se muestra a continuación:
+
+.co.hillmerch.payments.DeveloperService::public List<Developer> generateDeveloperCurrentStatusAsync()
+[source,java]
+----
+public List<Developer> generateDeveloperCurrentStatusAsync(){
+    List<Developer> developerList = this.findDevelopers();
+    List<CompletableFuture<Developer>>  cfList = new ArrayList<>();
+    for(Developer developer:developerList){
+        CompletableFuture cf = CompletableFuture
+                                    .supplyAsync( () -> this.loadNumberOfTasks( developer ));
+        cfList.add( cf );
+    }
+    CompletableFuture.allOf( cfList.toArray(new CompletableFuture[0])).join();
+    developerList = cfList.stream()
+                        .filter( CompletableFuture::isDone )
+                        .map(CompletableFuture::join)
+                        .collect( Collectors.toList() );
+    return developerList;
+}
+----
+
+Luego de adicionar a la lista un `CompletableFuture` la tarea para ejeuctar la consulta de cada desarrollador,
+con el método `allOf` esperamos a que todas las consultas se completen llamando el método `join`.
+Finalmente se filtran las que terminaron correctamente `isDone` para retornar la lista con los resultados;
+
+==== Ejecución
+
+Ambos métodos puede ser ejecutados utilizando la clase de prueba `co.hillmerch.developers.DeveloperServiceTest`
+
+NOTE: En la consulta de las tareas de cada desarrollador se han adicionado 2 segundos de pausas, que simulan el tiempo que puede
+tardar traer esta información desde una base de datos o un servicio web.
+
+===== Análisis de resultados (Ejecución de casos de pruebas)
+
+En la siguiente tabla se presentan la comparación de los tiempos de ejecución de ambos métodos al consultar la información de
+10 desarrolladores
+
+.Comparación de tiempos de ejecución
+|===
+^|Método ^|Tiempo total de ejecución
+
+|*testingGenerateDeveloperCurrentStatus()*
+>| 20.082 s
+
+|*testingGenerateDeveloperCurrentStatusAsync()*
+>| 8.0629 s
+|===
+
+En el método `testingGenerateDeveloperCurrentStatusAsync`, y a diferencia de `testingGenerateDeveloperCurrentStatus`,
+el *tiempo de ejecución* es *menor* debido a que se consultan la información de varios desarrolladores a la vez
+en diferentes hilos *concurrentes* asignados por la máquina virtual de Java.
+
+=== Conclusión
+
+En este ejemplo podemos concluir:
+
+. Utilizar `CompletableFuture` *no requiere* mayor cambio en el código
+
+. Al utilizar procesamiento en *concurrente aprovechamos* la capacidad del hardware (cores, hilos de cada core)
+obteniendo *menores tiempos* de *ejecución*
+
+. El procesamiento *Asíncrono* puede permitir darle una *rápida respuesta* al usuario y
+que este pueda seguir utilizando el sistema mientras el procesamiento finaliza
+
+
+link:../../README.adoc[Volver al index]
