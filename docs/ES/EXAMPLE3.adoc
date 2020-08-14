@@ -1,0 +1,148 @@
+= CompletableFuture Práctico
+
+== Ejemplos
+
+link:../../README.adoc[Volver al index]
+
+=== 3. Definiendo el número de tareas a ejecutar al mismo tiempo
+
+En este ejemplo se muestra como definir el numero de tareas concurrentes, y como verificar los hilos o threads
+que se crean. Para este ejemplo se usa el mismo escenario del ejemplo 2 en el cual
+se realiza la consulta de las tareas asignadas a un grupo de desarrolladores,
+consultando la información de varios de ellos a la vez, una vez toda la información
+se encuentra cargada se consolida para retornar el resultado.
+
+Para definir el número de tareas concurrentes se utiliza `java.util.concurrent.Executor`
+
+==== Componentes
+
+===== Clases
+
+* link:../../src/main/java/co/hillmerch/developers/Developer.java[Developer]: Entidad para representar desarrolladores
+* link:../../src/main/java/co/hillmerch/developers/DeveloperService.java[DeveloperService]: Servicio en donde se consultan las tareas asignadas a cada desarrollador
+
+===== Clases de pruebas
+* link:../../src/test/java/co/hillmerch/developers/DeveloperServiceTest.java[DeveloperServiceTest]
+
+
+==== Código
+
+En la clase `DeveloperService` se encuentra el método `generateDeveloperCurrentStatusAsyncWithExecutor(Executor executor)`.
+Este método recibe como parámetro un `java.util.concurrent.Executor`.
+
+En el método `generateDeveloperCurrentStatusAsyncWithExecutor` se hace el procesamiento *concurrente* y *asíncrono*, y con el fin de
+definir el número de tareas concurrentes se envía el `executor` al momento de crear el `CompletableFuture`
+según se muestra a continuación:
+
+.co.hillmerch.payments.DeveloperService::public List<Developer> generateDeveloperCurrentStatusAsyncWithExecutor(Executor executor)
+[source,java]
+----
+for ( Developer developer : developerList ) {
+    CompletableFuture cf = CompletableFuture
+        .supplyAsync( () -> this.loadNumberOfTasks( developer ), executor)
+        .thenRun( () -> printPoolInfo());
+    cfList.add( cf );
+}
+----
+
+Adicionalmente se ha creado el método `private void printPoolInfo()`, el cual imprime por consola el tamaño del pool y el nombre
+del hilo (Thread) en el cual se ejecuta la tarea. Este método se invoca en varias partes del código para poder observar como
+cambian estos valores.
+
+.co.hillmerch.payments.DeveloperService::private void printPoolInfo()
+[source,java]
+----
+private void printPoolInfo(){
+    System.out.println( "Pool size: " + ForkJoinPool.commonPool().getPoolSize()
+            + ". Thread:  " + Thread.currentThread().getName());
+}
+----
+
+==== Ejecución
+
+En la clase de prueba `co.hillmerch.developers.DeveloperServiceTest` el método `void testingGenerateDeveloperCurrentStatusAsyncWithExecutors()`
+permite ejecutar el método en el que se define el executor.
+En este ejercicio usamos 3: *Executors.newSingleThreadExecutor()*, *ForkJoinPool.commonPool()* y *Executors.newFixedThreadPool(int nThreads)*
+
+
+===== Análisis de resultados (Ejecución de casos de pruebas)
+
+A continuación se analizan los resultados de cada uno de los 3 executors definidos.
+
+* *_Executors.newSingleThreadExecutor()_*: Este executor define un solo thread, esto significa que aunque
+el método sea concurrente y asíncrono solo se ejecutará una tarea a la vez, tal como se puede
+observar en la salida al ejecutar el método solo se uso el thread llamado *pool-1-thread-1*
+
+[source,stdout]
+----
+Pool size: 0. Thread:  main
+Pool size: 0. Thread:  main
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  pool-1-thread-1
+Pool size: 0. Thread:  main
+----
+
+* *_ForkJoinPool.commonPool()_*: Este ejecutor definir el número de threads de manera estática cuando se necesiten por la máquina virtual.
+En este caso se puede observar que el pool inició con 0 hilos, y al momento de iniciar la ejecución concurrente
+se crearon tres: *commonPool-worker-n* donde *n* corresponde a 3, 5 y 7.
+
+[source,stdout]
+----
+Pool size: 0. Thread:  main
+Pool size: 2. Thread:  main
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-5
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-7
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-3
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-7
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-5
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-3
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-7
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-5
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-3
+Pool size: 3. Thread:  ForkJoinPool.commonPool-worker-7
+Pool size: 3. Thread:  main
+----
+
+* *_Executors.newFixedThreadPool(50)_*: Este ejecutor permite definir el número de threads que se quieren destinar para la ejecución concurrente,
+en este caso se definió con el valor de 50, y como se puede observar en la salida se han creado 10 hilos *pool-2-thread-n* donde
+*n* va desde 1 hasta 10, uno por cada registro.
+
+[source,stdout]
+----
+Pool size: 3. Thread:  main
+Pool size: 3. Thread:  main
+Pool size: 3. Thread:  pool-2-thread-2
+Pool size: 3. Thread:  pool-2-thread-4
+Pool size: 3. Thread:  pool-2-thread-6
+Pool size: 3. Thread:  pool-2-thread-5
+Pool size: 3. Thread:  pool-2-thread-1
+Pool size: 3. Thread:  pool-2-thread-8
+Pool size: 3. Thread:  pool-2-thread-3
+Pool size: 3. Thread:  pool-2-thread-7
+Pool size: 3. Thread:  pool-2-thread-9
+Pool size: 3. Thread:  pool-2-thread-10
+Pool size: 3. Thread:  main
+----
+
+=== Conclusión
+
+En este ejemplo podemos concluir:
+
+. La clase `CompletableFuture` permite definir la estrategia o numero de tareas concurrentes en
+las cuales se quiere dividir el procesamiento.
+
+. Cuando no se define un executor, se usará por defecto `ForkJoinPool.commonPool()`
+
+. La selección de el executor depende del caso de uso, los datos a procesar y/o los recursos
+de hardware disponibles
+
+
+link:../../README.adoc[Volver al index]

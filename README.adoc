@@ -39,3 +39,7 @@ la ejecución de tareas asíncronas y/o concurrentes.
   Este ejemplo realiza la consulta de las tareas asignadas a un grupo de desarrolladores,
 consultando la información de varios de ellos a la vez, una vez toda la información
 se encuentra cargada se consolida para retornar el resultado.
+
+. *link:docs/ES/EXAMPLE3.adoc[Definiendo el número de tareas a ejecutar al mismo tiempo]:*
+  En este ejemplo se muestra como definir el numero de tareas concurrentes, y como verificar los hilos o threads
+que se crean. Para este ejemplo se usa el mismo escenario del ejemplo 2.
